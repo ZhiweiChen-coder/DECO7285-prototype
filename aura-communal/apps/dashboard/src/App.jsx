@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { createDashboardClient } from './mqttClient.js';
 
 const COLOUR_MAP = {
@@ -26,11 +26,100 @@ export default function App() {
   const [devices, setDevices] = useState({});
   const [now, setNow] = useState(Date.now());
   const [showDevices, setShowDevices] = useState(true);
+  const [paused, setPaused] = useState(false);
+  const appShellRef = useRef(null);
+  const timerRef = useRef(null);
 
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(timer);
   }, []);
+
+  // Update CSS custom properties when majority color changes
+  useEffect(() => {
+    const majorityColor = COLOUR_MAP[majority.state] || COLOUR_MAP.blue;
+    document.documentElement.style.setProperty('--majority-color', majorityColor);
+    document.documentElement.style.setProperty('--baseColor', majorityColor);
+  }, [majority.state]);
+
+  // Dot animation functions
+  const rand = (min, max) => Math.random() * (max - min) + min;
+
+  const spawnDots = () => {
+    if (!appShellRef.current || paused) return;
+    
+    const rect = appShellRef.current.getBoundingClientRect();
+    const { width: w, height: h } = rect;
+    const count = Math.floor(rand(4, 7));
+    
+    for (let i = 0; i < count; i++) {
+      const dot = document.createElement('div');
+      dot.className = 'dot dotCycle';
+
+      const size = rand(60, 110);
+      dot.style.width = dot.style.height = size + 'px';
+
+      // Start anywhere inside container
+      const x0 = rand(0, w);
+      const y0 = rand(0, h);
+      // Drift outward in a random direction
+      const angle = rand(0, Math.PI * 2);
+      const travel = rand(160, 320);
+      const x1 = x0 + travel * Math.cos(angle);
+      const y1 = y0 + travel * Math.sin(angle);
+
+      dot.style.setProperty('--x0', x0 + 'px');
+      dot.style.setProperty('--y0', y0 + 'px');
+      dot.style.setProperty('--x1', x1 + 'px');
+      dot.style.setProperty('--y1', y1 + 'px');
+      dot.style.setProperty('--dotDur', Math.floor(rand(13000, 18000)) + 'ms');
+      dot.style.animationDelay = Math.floor(rand(0, 4000)) + 'ms';
+
+      appShellRef.current.appendChild(dot);
+      dot.addEventListener('animationend', () => dot.remove());
+    }
+  };
+
+  const startDotLoop = () => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    
+    spawnDots();
+    timerRef.current = setInterval(() => {
+      if (!paused) {
+        spawnDots();
+        setTimeout(() => {
+          if (!paused) spawnDots();
+        }, 12000); // Half cycle
+      }
+    }, 24000); // Full cycle
+    
+    setTimeout(() => {
+      if (!paused) spawnDots();
+    }, 12000);
+  };
+
+  const stopDotLoop = () => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+  };
+
+  // Start dot animation on mount
+  useEffect(() => {
+    startDotLoop();
+    return () => stopDotLoop();
+  }, []);
+
+  // Handle pause/play
+  useEffect(() => {
+    document.body.classList.toggle('paused', paused);
+    if (paused) {
+      stopDotLoop();
+    } else {
+      startDotLoop();
+    }
+  }, [paused]);
 
   useEffect(() => {
     const handleKey = (event) => {
@@ -87,28 +176,63 @@ export default function App() {
   }, [devices, now]);
 
   return (
-    <div className="app-shell">
+    <div className="app-shell" ref={appShellRef}>
+      <button
+        className="ctrl"
+        onClick={() => setPaused(!paused)}
+        aria-pressed={paused}
+        title="Pause / Play"
+      >
+        {paused ? 'Play' : 'Pause'}
+      </button>
+      
       {!connected && <div className="ribbon">Reconnecting…</div>}
-      <div
-        className="aura"
-        style={{
-          background: `radial-gradient(circle at center, ${auraColour} 0%, rgba(11, 15, 23, 0) 65%)`,
-        }}
-      />
+      
       <div className="content">
-        <h1 className="title">{formatState(majority.state)}</h1>
-        <p className="subtitle">
-          online: {counts.online ?? 0} — B:{counts.blue ?? 0} G:{counts.green ?? 0} Y:
-          {counts.yellow ?? 0} R:{counts.red ?? 0}
-        </p>
+        <div className="logo-section">
+          <div className="logo">
+            <div className="logo-icon">☕</div>
+            <div className="logo-text">Breacup</div>
+          </div>
+          <div className="tagline">Communal Aura</div>
+        </div>
+        
+        <div className="majority-section">
+          <h1 className="title">{formatState(majority.state)}</h1>
+          <p className="subtitle">
+            <span className="online-count">{counts.online ?? 0}</span> cups online
+          </p>
+        </div>
+        
+        <div className="stats-grid">
+          <div className="stat-item">
+            <div className="stat-color blue"></div>
+            <div className="stat-value">{counts.blue ?? 0}</div>
+          </div>
+          <div className="stat-item">
+            <div className="stat-color green"></div>
+            <div className="stat-value">{counts.green ?? 0}</div>
+          </div>
+          <div className="stat-item">
+            <div className="stat-color yellow"></div>
+            <div className="stat-value">{counts.yellow ?? 0}</div>
+          </div>
+          <div className="stat-item">
+            <div className="stat-color red"></div>
+            <div className="stat-value">{counts.red ?? 0}</div>
+          </div>
+        </div>
       </div>
+      
       {showDevices && (
         <div className="device-grid">
           {deviceCards.map((card) => (
             <div
               key={card.deviceId}
               className={`device-card${card.stale ? ' stale' : ''}`}
-              style={{ borderLeft: `4px solid ${COLOUR_MAP[card.state] || '#64748b'}` }}
+              style={{ 
+                '--device-color': COLOUR_MAP[card.state] || '#64748b'
+              }}
             >
               <div className="device-id">{card.deviceId}</div>
               <div className="device-meta">

@@ -9,9 +9,16 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "mqtt": "^5.5.0",
+    "buffer": "^5.7.1",
+    "crypto-browserify": "^3.12.1",
+    "events": "^3.3.0",
+    "mqtt": "^4.3.7",
+    "os-browserify": "^0.3.0",
+    "path-browserify": "^1.0.1",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "stream-browserify": "^3.0.0",
+    "util": "^0.12.5"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.2.1",
