@@ -1,0 +1,16 @@
+{
+  "name": "aura-communal-tests",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "test": "vitest run --reporter=verbose",
+    "test:watch": "vitest --reporter=verbose"
+  },
+  "dependencies": {
+    "axios": "^1.6.0",
+    "mqtt": "^4.3.7"
+  },
+  "devDependencies": {
+    "vitest": "^1.0.0"
+  }
+}

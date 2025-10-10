@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Dashboard Display Area</title>
+        <style>
+            /* =====================
+       Design Tokens
+    ====================== */
+            :root {
+                --bg: #c4c3e3; /* page background */
+                --green: #a3b565; /* calm light green */
+                --lightOrange: #fcdd9d; /* light orange */
+                --orange: #f1642e; /* saturated orange */
+                --text: #fff;
+                --muted: #e0e0e0;
+                --shadow: 0 10px 24px rgba(0, 0, 0, 0.25);
+            }
+
+            * {
+                box-sizing: border-box;
+            }
+            html,
+            body {
+                height: 100%;
+            }
+            body {
+                margin: 0;
+                font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI,
+                    Roboto, Helvetica, Arial;
+                color: var(--text);
+                background: var(--bg);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            /* =====================
+       Core Stage
+    ====================== */
+            .display-area {
+                width: min(900px, 80vw);
+                height: min(520px, 60vh);
+                border-radius: 24px;
+                border: 2px solid rgba(255, 255, 255, 0.25);
+                box-shadow: var(--shadow);
+                position: relative;
+                overflow: hidden;
+                isolation: isolate;
+                background: var(--green);
+                animation: backgroundCycle 24s ease-in-out infinite;
+            }
+
+            /* Background: green → lightOrange → orange → lightOrange → green (24s) */
+            @keyframes backgroundCycle {
+                0% {
+                    background: var(--green);
+                }
+                20% {
+                    background: var(--lightOrange);
+                }
+                40% {
+                    background: var(--orange);
+                }
+                60% {
+                    background: var(--lightOrange);
+                }
+                80% {
+                    background: var(--green);
+                }
+                100% {
+                    background: var(--green);
+                }
+            }
+
+            /* Pause helper: when body.paused, freeze all animations */
+            body.paused .display-area,
+            body.paused .display-area::before,
+            body.paused .dot {
+                animation-play-state: paused !important;
+            }
+
+            /* UI bits */
+            .hint {
+                position: absolute;
+                inset: auto 16px 16px 16px;
+                color: var(--muted);
+                font-size: 14px;
+                background: rgba(0, 0, 0, 0.25);
+                padding: 10px 12px;
+                border-radius: 12px;
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                backdrop-filter: blur(4px);
+                z-index: 3;
+            }
+            .ctrl {
+                position: absolute;
+                top: 12px;
+                right: 12px;
+                z-index: 4;
+                cursor: pointer;
+                font: 600 12px/1.1 ui-sans-serif, system-ui;
+                letter-spacing: 0.2px;
+                padding: 8px 12px;
+                border-radius: 10px;
+                border: 1px solid rgba(255, 255, 255, 0.35);
+                color: #fff;
+                background: rgba(0, 0, 0, 0.25);
+                backdrop-filter: blur(6px);
+            }
+            .ctrl:focus-visible {
+                outline: 2px solid #fff;
+                outline-offset: 2px;
+            }
+
+            /* =====================
+       Base Glow (bottom-centered, rises upward)
+    ====================== */
+            /* Animatable color for base glow; supported in modern browsers */
+            @property --baseColor {
+                syntax: "<color>";
+                inherits: false;
+                initial-value: #a3b565;
+            }
+            @keyframes baseCycle {
+                0% {
+                    --baseColor: var(--green);
+                }
+                20% {
+                    --baseColor: var(--lightOrange);
+                }
+                40% {
+                    --baseColor: var(--orange);
+                }
+                60% {
+                    --baseColor: var(--lightOrange);
+                }
+                80% {
+                    --baseColor: var(--green);
+                }
+                100% {
+                    --baseColor: var(--green);
+                }
+            }
+            .display-area::before {
+                content: "";
+                position: absolute;
+                left: -10%;
+                right: -10%;
+                bottom: -10%;
+                height: 78%;
+                z-index: 0;
+                pointer-events: none;
+                mix-blend-mode: screen;
+                background: radial-gradient(
+                        140% 90% at 50% 100%,
+                        color-mix(in oklab, var(--baseColor) 95%, transparent),
+                        transparent 70%
+                    ),
+                    linear-gradient(
+                        to top,
+                        color-mix(in oklab, var(--baseColor) 45%, transparent),
+                        transparent 75%
+                    );
+                animation: baseCycle 24s ease-in-out infinite,
+                    basePulse 12s ease-in-out infinite;
+            }
+            @keyframes basePulse {
+                0%,
+                100% {
+                    opacity: 0.7;
+                    transform: scale(0.99);
+                }
+                50% {
+                    opacity: 0.95;
+                    transform: scale(1.01);
+                }
+            }
+
+            /* =====================
+       Dots (perfect circles, soft edges, color driven by variable)
+    ====================== */
+            @property --dotColor {
+                syntax: "<color>";
+                inherits: false;
+                initial-value: var(--lightOrange);
+            }
+
+            .dot {
+                position: absolute;
+                z-index: 2;
+                pointer-events: none;
+                /* anchor at container origin; we place with translate(x,y) */
+                left: 0;
+                top: 0;
+                border-radius: 50%;
+                mix-blend-mode: screen;
+                --dotColor: var(--lightOrange);
+                /* softer edges, still circular */
+                background: radial-gradient(
+                    circle,
+                    color-mix(in oklab, var(--dotColor) 92%, transparent) 0%,
+                    color-mix(in oklab, var(--dotColor) 50%, transparent) 46%,
+                    color-mix(in oklab, var(--dotColor) 20%, transparent) 68%,
+                    transparent 78%
+                );
+                filter: blur(1.2px);
+            }
+
+            /* Motion: from (x0,y0) to (x1,y1); Color: lightOrange→orange→lightOrange→green→lightOrange */
+            @keyframes dotMotion {
+                0% {
+                    transform: translate(var(--x0), var(--y0)) scale(0.4);
+                    opacity: 0;
+                }
+                15% {
+                    opacity: 0.7;
+                }
+                60% {
+                    opacity: 0.95;
+                }
+                100% {
+                    transform: translate(var(--x1), var(--y1)) scale(1.8);
+                    opacity: 0;
+                }
+            }
+            @keyframes dotColorVar {
+                0% {
+                    --dotColor: var(--lightOrange);
+                }
+                25% {
+                    --dotColor: var(--orange);
+                }
+                50% {
+                    --dotColor: var(--lightOrange);
+                }
+                75% {
+                    --dotColor: var(--green);
+                }
+                100% {
+                    --dotColor: var(--lightOrange);
+                }
+            }
+            .dotCycle {
+                animation: dotMotion var(--dotDur, 16s) ease-in-out forwards,
+                    dotColorVar var(--dotDur, 16s) linear forwards;
+            }
+        </style>
+    </head>
+    <body>
+        <section
+            class="display-area"
+            role="group"
+            aria-label="Dynamic Display Area"
+        >
+            <button
+                class="ctrl"
+                id="toggleAnim"
+                aria-pressed="false"
+                title="Pause / Play"
+            >
+                Pause
+            </button>
+            <div class="hint" id="hint">
+                Dynamic display area with synchronized glow-dot cycle
+            </div>
+        </section>
+
+        <script>
+            (function () {
+                const area = document.querySelector(".display-area");
+                const hint = document.getElementById("hint");
+                const btn = document.getElementById("toggleAnim");
+                const cycle = 24000; // 24s full cycle
+
+                let paused = false;
+                let timer = null;
+
+                function rand(min, max) {
+                    return Math.random() * (max - min) + min;
+                }
+                function rect() {
+                    return area.getBoundingClientRect();
+                }
+
+                // Spawn dots at random positions across container, drifting outward
+                function spawnDots() {
+                    const { width: w, height: h } = rect();
+                    const count = Math.floor(rand(4, 7));
+                    for (let i = 0; i < count; i++) {
+                        const d = document.createElement("div");
+                        d.className = "dot dotCycle";
+
+                        const size = rand(60, 110);
+                        d.style.width = d.style.height = size + "px";
+
+                        // Start anywhere inside container
+                        const x0 = rand(0, w);
+                        const y0 = rand(0, h);
+                        // Drift outward in a random direction by a random distance
+                        const angle = rand(0, Math.PI * 2);
+                        const travel = rand(160, 320);
+                        const x1 = x0 + travel * Math.cos(angle);
+                        const y1 = y0 + travel * Math.sin(angle);
+
+                        d.style.setProperty("--x0", x0 + "px");
+                        d.style.setProperty("--y0", y0 + "px");
+                        d.style.setProperty("--x1", x1 + "px");
+                        d.style.setProperty("--y1", y1 + "px");
+
+                        d.style.setProperty(
+                            "--dotDur",
+                            Math.floor(rand(13000, 18000)) + "ms"
+                        );
+                        d.style.animationDelay =
+                            Math.floor(rand(0, cycle * 0.4 - 500)) + "ms";
+
+                        area.appendChild(d);
+                        d.addEventListener("animationend", () => d.remove());
+                    }
+                }
+
+                function startLoop() {
+                    spawnDots();
+                    timer = setInterval(() => {
+                        if (!paused) {
+                            spawnDots();
+                            setTimeout(() => {
+                                if (!paused) spawnDots();
+                            }, cycle / 2);
+                        }
+                    }, cycle);
+                    setTimeout(() => {
+                        if (!paused) spawnDots();
+                    }, cycle / 2);
+                }
+
+                function stopLoop() {
+                    if (timer) {
+                        clearInterval(timer);
+                        timer = null;
+                    }
+                }
+
+                // Pause / Play control
+                btn.addEventListener("click", () => {
+                    paused = !paused;
+                    document.body.classList.toggle("paused", paused);
+                    btn.textContent = paused ? "Play" : "Pause";
+                    btn.setAttribute("aria-pressed", String(paused));
+                    if (paused) {
+                        stopLoop();
+                    } else {
+                        startLoop();
+                    }
+                });
+
+                // Basic self-test: after 2s ensure dots have been created
+                setTimeout(() => {
+                    const n = area.querySelectorAll(".dot").length;
+                    console.assert(n > 0, "Test: dots should spawn within 2s");
+                    if (hint)
+                        hint.textContent =
+                            n > 0
+                                ? "Running… (dots active)"
+                                : "No dots detected — check console";
+                }, 2000);
+
+                // Start
+                startLoop();
+
+                // Optional: pause when tab hidden, resume when visible
+                document.addEventListener("visibilitychange", () => {
+                    if (document.hidden && !paused) {
+                        btn.click();
+                    } else if (!document.hidden && paused) {
+                        btn.click();
+                    }
+                });
+            })();
+        </script>
+    </body>
+</html>

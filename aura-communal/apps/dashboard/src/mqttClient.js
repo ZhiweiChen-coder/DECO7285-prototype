@@ -1,6 +1,8 @@
-import mqtt from 'mqtt';
+// Use browser bundle to avoid Node polyfills
+import mqtt from 'mqtt/dist/mqtt.min.js';
 
-const DEFAULT_URL = 'ws://localhost:9001';
+// Prefer 127.0.0.1 to avoid loopback name/DNS or proxy quirks in some browsers
+const DEFAULT_URL = 'ws://127.0.0.1:9001';
 
 const resolveUrl = () => {
   return (
@@ -15,6 +17,11 @@ export const createDashboardClient = ({ onStatus } = {}) => {
     reconnectPeriod: 2000,
     connectTimeout: 5000,
     clean: true,
+    keepalive: 60,
+    protocolVersion: 4, // MQTT v3.1.1
+    resubscribe: true,
+    // Force root path for Mosquitto websockets (mqtt.js defaults to "/mqtt")
+    path: '/',
   });
 
   const notify = (connected) => {
@@ -27,7 +34,10 @@ export const createDashboardClient = ({ onStatus } = {}) => {
   client.on('reconnect', () => notify(false));
   client.on('close', () => notify(false));
   client.on('offline', () => notify(false));
-  client.on('error', () => notify(false));
+  client.on('error', (err) => {
+    console.error('MQTT error', err?.message || err);
+    notify(false);
+  });
 
   const subscribeJson = (topic, handler) => {
     const listener = (incomingTopic, payload) => {
@@ -46,8 +56,15 @@ export const createDashboardClient = ({ onStatus } = {}) => {
     });
     client.on('message', listener);
     return () => {
-      client.unsubscribe(topic, () => {});
-      client.off('message', listener);
+      try {
+        if (client.connected) {
+          client.unsubscribe(topic, () => {});
+        }
+      } catch {}
+      // Use removeListener to detach in browser build
+      if (typeof client.removeListener === 'function') {
+        client.removeListener('message', listener);
+      }
     };
   };
 
