@@ -1,0 +1,118 @@
+:root {
+  color-scheme: dark;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  background: #0b0f17;
+}
+
+body {
+  color: #f8fbff;
+}
+
+.app-shell {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.aura {
+  position: absolute;
+  inset: -20%;
+  filter: blur(120px);
+  transform: scale(1);
+  opacity: 0.85;
+  animation: breathe 6s ease-in-out infinite;
+  transition: background 0.6s ease;
+}
+
+@keyframes breathe {
+  0% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  50% {
+    transform: scale(1.08);
+    opacity: 0.95;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+}
+
+.content {
+  position: relative;
+  z-index: 2;
+  padding: 2rem;
+}
+
+.title {
+  font-size: clamp(3rem, 8vw, 6rem);
+  letter-spacing: 0.4rem;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.subtitle {
+  margin-top: 1rem;
+  font-size: clamp(1rem, 2vw, 1.6rem);
+  opacity: 0.85;
+}
+
+.ribbon {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: rgba(255, 107, 107, 0.2);
+  color: #ffb3b3;
+  font-size: 0.85rem;
+  padding: 0.4rem 1rem;
+  text-align: center;
+  letter-spacing: 0.1rem;
+  z-index: 3;
+}
+
+.device-grid {
+  position: absolute;
+  bottom: 2rem;
+  right: 2rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 0.75rem;
+  max-width: 420px;
+  z-index: 2;
+}
+
+.device-card {
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  background: rgba(15, 22, 35, 0.7);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+.device-card.stale {
+  opacity: 0.4;
+  transform: translateY(6px);
+}
+
+.device-id {
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+.device-meta {
+  margin-top: 0.35rem;
+  font-size: 0.85rem;
+  opacity: 0.8;
+}
