@@ -13,7 +13,8 @@
     "dev:aggregator": "npm --workspace apps/aggregator run dev",
     "dev:dashboard": "npm --workspace apps/dashboard run dev",
     "dev:sim": "npm --workspace tools/simulator run dev",
-    "dev": "concurrently -n broker,agg,ui,sim -c blue,magenta,green,yellow \"npm:dev:broker\" \"npm:dev:aggregator\" \"npm:dev:dashboard\" \"npm:dev:sim\"",
+    "dev": "concurrently -n broker,agg,ui -c blue,magenta,green \"npm:dev:broker\" \"npm:dev:aggregator\" \"npm:dev:dashboard\"",
+    "dev:with-sim": "concurrently -n broker,agg,ui,sim -c blue,magenta,green,yellow \"npm:dev:broker\" \"npm:dev:aggregator\" \"npm:dev:dashboard\" \"npm:dev:sim\"",
     "test": "npm --workspace tests run test"
   },
   "devDependencies": {

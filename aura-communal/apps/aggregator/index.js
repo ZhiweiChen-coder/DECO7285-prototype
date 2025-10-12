@@ -47,12 +47,14 @@ client.on('message', (topic, payload) => {
   let parsed;
   try {
     parsed = JSON.parse(payload.toString());
+    log(`received message from ${deviceId}:`, parsed);
   } catch (err) {
-    log('ignoring malformed payload for', deviceId);
+    log('ignoring malformed payload for', deviceId, 'error:', err.message);
     return;
   }
 
-  if (parsed?.status === 'offline') {
+  // Handle offline state (from LWT or explicit offline message)
+  if (parsed?.status === 'offline' || parsed?.state === 'offline') {
     if (devices.delete(deviceId)) {
       dirtySnapshot = true;
       log(`device ${deviceId} offline`);
@@ -61,14 +63,31 @@ client.on('message', (topic, payload) => {
   }
 
   const state = parsed?.state;
-  const ts = Number(parsed?.ts || Math.floor(Date.now() / 1000));
+  let ts = Number(parsed?.ts || Math.floor(Date.now() / 1000));
+  const rssi = Number(parsed?.rssi) || null;
+  
+  // Handle M5StickC timestamp format (millis() / 1000 can be very large)
+  // If timestamp is too large, treat it as a relative timestamp and use current time
+  if (ts > 2000000000) { // If timestamp is larger than year 2033, it's likely millis()
+    ts = Math.floor(Date.now() / 1000);
+    log(`corrected timestamp for ${deviceId} from ${parsed?.ts} to ${ts}`);
+  }
+  
+  // Additional check: if timestamp is still too old (more than 1 hour), use current time
+  const nowSec = Math.floor(Date.now() / 1000);
+  if (ts < nowSec - 3600) { // If timestamp is more than 1 hour old
+    ts = nowSec;
+    log(`corrected old timestamp for ${deviceId} to current time: ${ts}`);
+  }
+  
   if (!STATES.includes(state) || Number.isNaN(ts)) {
-    log(`ignoring state for ${deviceId}`);
+    log(`ignoring state for ${deviceId}: state=${state}, ts=${ts}, validStates=${STATES.join(',')}`);
     return;
   }
 
-  devices.set(deviceId, { state, ts });
+  devices.set(deviceId, { state, ts, rssi });
   dirtySnapshot = true;
+  log(`updated device ${deviceId}: state=${state}, ts=${ts}, rssi=${rssi}`);
 });
 
 const computeCounts = () => {
@@ -98,6 +117,7 @@ const publishMajority = () => {
   const majorityPayload = JSON.stringify({
     state: majority,
     counts: { ...counts, online },
+    ts: Math.floor(Date.now() / 1000),
   });
 
   if (majorityPayload !== lastMajorityPayload) {
@@ -127,7 +147,9 @@ const prune = () => {
   const nowSec = Math.floor(Date.now() / 1000);
   let removed = false;
   for (const [deviceId, data] of devices) {
-    if (nowSec - data.ts > TTL_SECONDS) {
+    const age = nowSec - data.ts;
+    if (age > TTL_SECONDS) {
+      log(`pruning device ${deviceId}: age=${age}s, ts=${data.ts}, now=${nowSec}`);
       devices.delete(deviceId);
       removed = true;
     }
@@ -160,7 +182,12 @@ fastify.get('/stats', async () => {
     if (ageSec <= TTL_SECONDS && counts[data.state] !== undefined) {
       counts[data.state] += 1;
     }
-    devicesList.push({ device_id: deviceId, state: data.state, ageSec });
+    devicesList.push({ 
+      device_id: deviceId, 
+      state: data.state, 
+      ageSec,
+      lastRssi: data.rssi || null
+    });
   }
 
   const online = counts.blue + counts.green + counts.yellow + counts.red;
@@ -169,6 +196,7 @@ fastify.get('/stats', async () => {
     counts,
     online,
     devices: devicesList,
+    ts: nowSec,
   };
 });
 

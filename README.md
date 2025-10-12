@@ -24,9 +24,14 @@ A laptop-friendly monorepo for showing the communal mug aura experience at trade
 npm install
 ```
 
-## Run everything (broker + aggregator + dashboard + simulator)
+## Run system (broker + aggregator + dashboard)
 ```bash
 npm run dev
+```
+
+## Run with simulator (for testing without hardware)
+```bash
+npm run dev:with-sim
 ```
 
 ## Open the dashboard
@@ -65,39 +70,93 @@ Upload the provided Arduino sketch to your M5StickC with these settings:
 - **M5StickC won't connect**: Check WiFi credentials and ensure laptop IP is `172.16.11.232`
 - **Dashboard shows no data**: Hard refresh browser (Cmd+Shift+R) and check browser console
 - **BLE scanning issues**: Ensure phone is broadcasting "COMMUNAL_ZONE" beacon
+- **M5StickC shows 0 cups online**: The aggregator automatically corrects M5StickC timestamps - wait a few seconds for the device to be recognized
+- **Device appears/disappears**: M5StickC devices are pruned after 10 seconds of inactivity - ensure continuous BLE scanning
 
 ## Data Contracts
 
-### Mug → Broker
+### MQTT Topics
+- **Device State**: `mugs/<device_id>/state` (retained)
+- **Majority State**: `dashboard/majority` (retained)
+- **Device Shadow**: `dashboard/mugs/<device_id>` (retained, optional)
+
+### Mug → Broker (mugs/<id>/state, retained)
 ```json
 {
   "device_id": "mug-042",
-  "state": "blue | green | yellow | red",
+  "state": "blue|green|yellow|red|offline",
   "rssi": -60,
   "ts": 1733822400
 }
 ```
+*Note: `ts` = Unix epoch seconds*
 
-### Offline LWT (retained)
-```json
-{"status":"offline"}
-```
-
-### Aggregator → Broker (retained)
+### LWT (Last Will and Testament)
 ```json
 {
-  "state": "blue | green | yellow | red",
-  "counts": {"blue":0,"green":5,"yellow":1,"red":0,"online":6}
+  "device_id": "mug-001",
+  "state": "offline",
+  "ts": 1733822400
+}
+```
+*Published to same topic as device state when connection drops*
+
+### Backend → Broker (dashboard/majority, retained)
+```json
+{
+  "state": "blue|green|yellow|red",
+  "counts": {"blue":0,"green":5,"yellow":1,"red":0,"online":6},
+  "ts": 1733822400
 }
 ```
 
-### Aggregator /stats
+### Backend HTTP /stats
 ```json
 {
   "counts": {"blue":0,"green":5,"yellow":1,"red":0},
   "online": 6,
   "devices": [
-    {"device_id":"mug-042","state":"green","ageSec":2}
-  ]
+    {"device_id":"mug-042","state":"green","ageSec":2,"lastRssi":-62}
+  ],
+  "ts": 1733822400
 }
+```
+
+## Quick Demo Checklist
+
+### ✅ Pre-Demo Setup
+- [ ] Laptop IP in Arduino sketch matches current LAN IP (`172.16.11.232`)
+- [ ] Mosquitto running; port 1883 open (firewall)
+- [ ] Backend logs show "MQTT connected", "subscribed mugs/+/state"
+- [ ] Retained messages enabled on device state & majority topics
+- [ ] Frontend connected to backend WebSocket (no CORS errors in console)
+- [ ] LWT includes device_id and publishes to `mugs/<id>/state`
+- [ ] Dashboard shows "1 cup online" when M5StickC is connected
+
+### ✅ Hardware Setup
+- [ ] M5StickC programmed with Arduino sketch
+- [ ] WiFi credentials updated in sketch
+- [ ] Phone BLE beacon broadcasting "COMMUNAL_ZONE"
+- [ ] M5StickC shows BLUE state (scanning)
+
+### ✅ Demo Flow
+- [ ] Move phone closer to M5StickC → should go GREEN
+- [ ] Wait 60s → should go YELLOW  
+- [ ] Wait 30s more → should go RED
+- [ ] Press Button A → should return to BLUE
+- [ ] Dashboard shows live updates at http://localhost:5173
+
+### 🔧 Troubleshooting Commands
+```bash
+# Check system health
+curl http://localhost:4000/health
+
+# View live stats
+curl http://localhost:4000/stats
+
+# Test MQTT connection
+mosquitto_pub -h 172.16.11.232 -t "mugs/test/state" -m '{"device_id":"test","state":"blue","ts":1733822400}'
+
+# View Mosquitto logs
+mosquitto -v -c infra/mosquitto/mosquitto.conf
 ```
