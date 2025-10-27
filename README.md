@@ -1,11 +1,9 @@
-# Aura Communal Demo
+# Breakly Communal Aura Demo
 
-A laptop-friendly monorepo for showing the communal mug aura experience at tradeshows. It bundles an MQTT broker, Node.js aggregator, React dashboard, and supports both ESP32 simulator and real M5StickC hardware.
+A laptop-friendly monorepo for showing the communal mug aura experience at tradeshows. It bundles an MQTT broker, Node.js aggregator, React dashboard, and supports M5StickC hardware.
 
 ## System Architecture
 ```
-📱 Phone (BLE beacon "COMMUNAL_ZONE") 
-    ↓ BLE proximity scan
 🔧 M5StickC (mug-001) 
     ↓ MQTT publish
 💻 Laptop Backend (172.16.11.232:1883)
@@ -17,7 +15,6 @@ A laptop-friendly monorepo for showing the communal mug aura experience at trade
 - Node.js 20 or newer with npm 10+
 - Mosquitto installed locally (e.g. `brew install mosquitto` on macOS or `sudo apt install mosquitto` on Debian/Ubuntu)
 - M5StickC with Arduino IDE (for hardware setup)
-- Phone with BLE beacon app (for proximity testing)
 
 ## Install
 ```bash
@@ -47,16 +44,10 @@ Upload the provided Arduino sketch to your M5StickC with these settings:
 - **MQTT Broker**: `172.16.11.232:1883` (your laptop's IP)
 
 ### 2. Expected Behavior
-- **BLUE** (Best signal): Scanning for "COMMUNAL_ZONE" BLE beacon
-- **GREEN** (Good signal): Stop scanning, start 60s timer
+- **GREEN** (Start state): Begin 60s timer
 - **YELLOW** (Warning): After 60s in GREEN state
 - **RED** (Timeout): After 30s in YELLOW state
-- **Button A**: Re-arm scanning (back to BLUE)
-
-### 3. Phone Setup
-- Install a BLE beacon app
-- Set beacon name to "COMMUNAL_ZONE"
-- Start broadcasting
+- **Button A**: Reset to GREEN state (restart timer)
 
 ## API Endpoints
 - **Dashboard**: http://localhost:5173
@@ -69,9 +60,8 @@ Upload the provided Arduino sketch to your M5StickC with these settings:
 - **WebSocket connection blocked**: Verify Mosquitto started with WebSocket support (`mosquitto -v -c infra/mosquitto/mosquitto.conf`).
 - **M5StickC won't connect**: Check WiFi credentials and ensure laptop IP is `172.16.11.232`
 - **Dashboard shows no data**: Hard refresh browser (Cmd+Shift+R) and check browser console
-- **BLE scanning issues**: Ensure phone is broadcasting "COMMUNAL_ZONE" beacon
 - **M5StickC shows 0 cups online**: The aggregator automatically corrects M5StickC timestamps - wait a few seconds for the device to be recognized
-- **Device appears/disappears**: M5StickC devices are pruned after 10 seconds of inactivity - ensure continuous BLE scanning
+- **Device appears/disappears**: M5StickC devices are pruned after 10 seconds of inactivity - ensure continuous MQTT publishing
 
 ## Data Contracts
 
@@ -83,9 +73,8 @@ Upload the provided Arduino sketch to your M5StickC with these settings:
 ### Mug → Broker (mugs/<id>/state, retained)
 ```json
 {
-  "device_id": "mug-042",
-  "state": "blue|green|yellow|red|offline",
-  "rssi": -60,
+  "device_id": "mug-001",
+  "state": "green|yellow|red|offline",
   "ts": 1733822400
 }
 ```
@@ -104,7 +93,7 @@ Upload the provided Arduino sketch to your M5StickC with these settings:
 ### Backend → Broker (dashboard/majority, retained)
 ```json
 {
-  "state": "blue|green|yellow|red",
+  "state": "green|yellow|red",
   "counts": {"blue":0,"green":5,"yellow":1,"red":0,"online":6},
   "ts": 1733822400
 }
@@ -116,7 +105,7 @@ Upload the provided Arduino sketch to your M5StickC with these settings:
   "counts": {"blue":0,"green":5,"yellow":1,"red":0},
   "online": 6,
   "devices": [
-    {"device_id":"mug-042","state":"green","ageSec":2,"lastRssi":-62}
+    {"device_id":"mug-001","state":"green","ageSec":2,"lastRssi":null}
   ],
   "ts": 1733822400
 }
@@ -136,14 +125,13 @@ Upload the provided Arduino sketch to your M5StickC with these settings:
 ### ✅ Hardware Setup
 - [ ] M5StickC programmed with Arduino sketch
 - [ ] WiFi credentials updated in sketch
-- [ ] Phone BLE beacon broadcasting "COMMUNAL_ZONE"
-- [ ] M5StickC shows BLUE state (scanning)
+- [ ] M5StickC shows GREEN state (ready to start timer)
 
 ### ✅ Demo Flow
-- [ ] Move phone closer to M5StickC → should go GREEN
+- [ ] M5StickC starts in GREEN state → begins 60s timer
 - [ ] Wait 60s → should go YELLOW  
 - [ ] Wait 30s more → should go RED
-- [ ] Press Button A → should return to BLUE
+- [ ] Press Button A → should return to GREEN (restart timer)
 - [ ] Dashboard shows live updates at http://localhost:5173
 
 ### 🔧 Troubleshooting Commands
@@ -155,7 +143,7 @@ curl http://localhost:4000/health
 curl http://localhost:4000/stats
 
 # Test MQTT connection
-mosquitto_pub -h 172.16.11.232 -t "mugs/test/state" -m '{"device_id":"test","state":"blue","ts":1733822400}'
+mosquitto_pub -h 172.16.11.232 -t "mugs/test/state" -m '{"device_id":"test","state":"green","ts":1733822400}'
 
 # View Mosquitto logs
 mosquitto -v -c infra/mosquitto/mosquitto.conf

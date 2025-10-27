@@ -192,7 +192,7 @@ export default function App() {
         <div className="logo-section">
           <div className="logo">
             <div className="logo-icon">☕</div>
-            <div className="logo-text">Breacup</div>
+            <div className="logo-text">Breakly</div>
           </div>
           <div className="tagline">Communal Aura</div>
         </div>
@@ -202,25 +202,6 @@ export default function App() {
           <p className="subtitle">
             <span className="online-count">{counts.online ?? 0}</span> cups online
           </p>
-        </div>
-        
-        <div className="stats-grid">
-          <div className="stat-item">
-            <div className="stat-color blue"></div>
-            <div className="stat-value">{counts.blue ?? 0}</div>
-          </div>
-          <div className="stat-item">
-            <div className="stat-color green"></div>
-            <div className="stat-value">{counts.green ?? 0}</div>
-          </div>
-          <div className="stat-item">
-            <div className="stat-color yellow"></div>
-            <div className="stat-value">{counts.yellow ?? 0}</div>
-          </div>
-          <div className="stat-item">
-            <div className="stat-color red"></div>
-            <div className="stat-value">{counts.red ?? 0}</div>
-          </div>
         </div>
       </div>
       
