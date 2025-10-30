@@ -1,12 +1,10 @@
-# Aura Communal Demo
+# Breakly Demo
 
-A laptop-friendly monorepo for showing the communal mug aura experience at tradeshows. It bundles an MQTT broker, Node.js aggregator, React dashboard, and supports both ESP32 simulator and real M5StickC hardware.
+A laptop-friendly monorepo for demonstrating the communal mug experience at tradeshows. It bundles an MQTT broker, a Node.js aggregator, and a React dashboard, and supports both an ESP32 simulator and real M5StickC hardware.
 
 ## System Architecture
 ```
-📱 Phone (BLE beacon "COMMUNAL_ZONE") 
-    ↓ BLE proximity scan
-🔧 M5StickC (mug-001) 
+🔧 Device (e.g., M5StickC: "mug-001")
     ↓ MQTT publish
 💻 Laptop Backend (172.16.11.232:1883)
     ↓ WebSocket
@@ -17,7 +15,7 @@ A laptop-friendly monorepo for showing the communal mug aura experience at trade
 - Node.js 20 or newer with npm 10+
 - Mosquitto installed locally (e.g. `brew install mosquitto` on macOS or `sudo apt install mosquitto` on Debian/Ubuntu)
 - M5StickC with Arduino IDE (for hardware setup)
-- Phone with BLE beacon app (for proximity testing)
+
 
 ## Install
 ```bash
@@ -46,18 +44,6 @@ Upload the provided Arduino sketch to your M5StickC with these settings:
 - **WiFi**: Connect to your network
 - **MQTT Broker**: `172.16.11.232:1883` (your laptop's IP)
 
-### 2. Expected Behavior
-- **BLUE** (Best signal): Scanning for "COMMUNAL_ZONE" BLE beacon
-- **GREEN** (Good signal): Stop scanning, start 60s timer
-- **YELLOW** (Warning): After 60s in GREEN state
-- **RED** (Timeout): After 30s in YELLOW state
-- **Button A**: Re-arm scanning (back to BLUE)
-
-### 3. Phone Setup
-- Install a BLE beacon app
-- Set beacon name to "COMMUNAL_ZONE"
-- Start broadcasting
-
 ## API Endpoints
 - **Dashboard**: http://localhost:5173
 - **Health Check**: http://localhost:4000/health
@@ -69,7 +55,7 @@ Upload the provided Arduino sketch to your M5StickC with these settings:
 - **WebSocket connection blocked**: Verify Mosquitto started with WebSocket support (`mosquitto -v -c infra/mosquitto/mosquitto.conf`).
 - **M5StickC won't connect**: Check WiFi credentials and ensure laptop IP is `172.16.11.232`
 - **Dashboard shows no data**: Hard refresh browser (Cmd+Shift+R) and check browser console
-- **BLE scanning issues**: Ensure phone is broadcasting "COMMUNAL_ZONE" beacon
+- 
 - **M5StickC shows 0 cups online**: The aggregator automatically corrects M5StickC timestamps - wait a few seconds for the device to be recognized
 - **Device appears/disappears**: M5StickC devices are pruned after 10 seconds of inactivity - ensure continuous BLE scanning
 
@@ -136,14 +122,8 @@ Upload the provided Arduino sketch to your M5StickC with these settings:
 ### ✅ Hardware Setup
 - [ ] M5StickC programmed with Arduino sketch
 - [ ] WiFi credentials updated in sketch
-- [ ] Phone BLE beacon broadcasting "COMMUNAL_ZONE"
-- [ ] M5StickC shows BLUE state (scanning)
 
-### ✅ Demo Flow
-- [ ] Move phone closer to M5StickC → should go GREEN
-- [ ] Wait 60s → should go YELLOW  
-- [ ] Wait 30s more → should go RED
-- [ ] Press Button A → should return to BLUE
+- 
 - [ ] Dashboard shows live updates at http://localhost:5173
 
 ### 🔧 Troubleshooting Commands
@@ -159,4 +139,17 @@ mosquitto_pub -h 172.16.11.232 -t "mugs/test/state" -m '{"device_id":"test","sta
 
 # View Mosquitto logs
 mosquitto -v -c infra/mosquitto/mosquitto.conf
+# Free common dev ports (macOS/Linux)
+lsof -ti:1883,9001,4000,5173 2>/dev/null | xargs -r kill -9 || true
+
+# Kill ALL listening TCP processes (macOS/Linux, dangerous)
+sudo lsof -tiTCP -sTCP:LISTEN | xargs -r kill -9
+```
+
+#### Windows: free common dev ports
+```powershell
+$ports = 1883,9001,4000,5173
+Get-NetTCPConnection -State Listen | Where-Object { $ports -contains $_.LocalPort } |
+  Select-Object -ExpandProperty OwningProcess | Sort-Object -Unique |
+  ForEach-Object { Stop-Process -Id $_ -Force }
 ```
