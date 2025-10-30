@@ -55,9 +55,8 @@ Upload the provided Arduino sketch to your M5StickC with these settings:
 - **WebSocket connection blocked**: Verify Mosquitto started with WebSocket support (`mosquitto -v -c infra/mosquitto/mosquitto.conf`).
 - **M5StickC won't connect**: Check WiFi credentials and ensure laptop IP is `172.16.11.232`
 - **Dashboard shows no data**: Hard refresh browser (Cmd+Shift+R) and check browser console
-- 
 - **M5StickC shows 0 cups online**: The aggregator automatically corrects M5StickC timestamps - wait a few seconds for the device to be recognized
-- **Device appears/disappears**: M5StickC devices are pruned after 10 seconds of inactivity - ensure continuous BLE scanning
+- **Device appears/disappears**: Devices are pruned after 10 seconds of inactivity - ensure the device publishes regularly
 
 ## Data Contracts
 
@@ -71,7 +70,6 @@ Upload the provided Arduino sketch to your M5StickC with these settings:
 {
   "device_id": "mug-042",
   "state": "blue|green|yellow|red|offline",
-  "rssi": -60,
   "ts": 1733822400
 }
 ```
@@ -102,7 +100,7 @@ Upload the provided Arduino sketch to your M5StickC with these settings:
   "counts": {"blue":0,"green":5,"yellow":1,"red":0},
   "online": 6,
   "devices": [
-    {"device_id":"mug-042","state":"green","ageSec":2,"lastRssi":-62}
+    {"device_id":"mug-042","state":"green","ageSec":2}
   ],
   "ts": 1733822400
 }
@@ -123,7 +121,6 @@ Upload the provided Arduino sketch to your M5StickC with these settings:
 - [ ] M5StickC programmed with Arduino sketch
 - [ ] WiFi credentials updated in sketch
 
-- 
 - [ ] Dashboard shows live updates at http://localhost:5173
 
 ### 🔧 Troubleshooting Commands
